@@ -1,0 +1,24 @@
+name: openapi-yaml-lint
+
+on:
+  pull_request:
+    paths:
+      - openapi.yml
+      - .github/workflows/openapi_yaml_lint.yml
+
+  push:
+    branches:
+      - develop
+    paths:
+      - openapi.yml
+
+jobs:
+  spectral_lint:
+    name: Run Spectral
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - uses: stoplightio/spectral-action@latest
+        with:
+          file_glob: "openapi.yml"

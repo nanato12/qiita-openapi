@@ -1,0 +1,6 @@
+extends: ["spectral:oas"]
+overrides:
+  - files:
+      - "openapi.yml"
+    rules:
+      oas3-unused-component: off

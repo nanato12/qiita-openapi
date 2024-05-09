@@ -1,0 +1,1322 @@
+openapi: 3.0.0
+info:
+  title: Qiita API v2
+  version: 0.0.1
+  description: This document describes the Qiita API v2 specification.
+  contact:
+    name: nanato12
+    url: 'https://github.com/nanato12'
+    email: admin@okj.info
+servers:
+  - url: 'https://qiita.com'
+    description: When using data from Qiita
+  - url: 'https://*.qiita.com'
+    description: When using Qiita Team data
+security:
+  - Bearer: []
+tags:
+  - name: auth
+  - name: user
+  - name: item
+  - name: team
+paths:
+  /api/v2/oauth/authorize:
+    get:
+      summary: Get OAuth authorize
+      tags:
+        - auth
+      responses:
+        '200':
+          description: OK
+      operationId: get-oauth-authorize
+      description: |-
+        read_qiita_team、write_qiita_teamを使う場合、authorizeページによる認証認可は2020年6月5日に非推奨となりました。今後はご利用されるチームのホストでteam_authorizeをご利用ください。
+        アクセストークンを発行するには、アプリケーションのユーザーに認可画面を表示する必要があります。ユーザーがアプリケーションからのアクセスを認可すると、アプリケーション登録時に指定されたURLにリダイレクトされます。このとき、リダイレクト先のURLクエリにcodeが付与されます。また指定した場合は state も付与されます。アプリケーションでは、この code の値を利用して POST /api/v2/access_tokens にリクエストを送り、アクセストークンを発行します。
+      parameters:
+        - $ref: '#/components/parameters/client_id'
+        - $ref: '#/components/parameters/scope'
+        - $ref: '#/components/parameters/state'
+  /api/v2/oauth/team_authorize:
+    get:
+      summary: Get OAuth team authorize
+      tags:
+        - team
+        - auth
+      responses:
+        '200':
+          description: OK
+      operationId: get-oauth-team-authorize
+      description: チーム別アクセストークンを発行するには、それぞれのチームでアプリケーションのユーザーに認可画面を表示する必要があります。ユーザーがアプリケーションからのアクセスを認可すると、アプリケーション登録時に指定されたURLにリダイレクトされます。このとき、リダイレクト先のURLクエリにcodeが付与されます。また指定した場合は state も付与されます。アプリケーションでは、この code の値を利用して POST /api/v2/team_access_tokens にリクエストを送り、チーム別アクセストークンを発行します。Qiita Teamでのみ有効です。
+      parameters:
+        - $ref: '#/components/parameters/client_id'
+        - $ref: '#/components/parameters/scope'
+        - $ref: '#/components/parameters/state'
+  /api/v2/access_tokens:
+    post:
+      summary: Issue access token
+      operationId: issue-access_tokens
+      responses:
+        '200':
+          description: OK
+      description: 与えられた認証情報をもとに新しいアクセストークンを発行します。
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/IssueAccessTokenRequest'
+      tags:
+        - auth
+  '/api/v2/access_tokens/{access_token}':
+    parameters:
+      - schema:
+          type: string
+          pattern: '^[0-9a-f]{40}$'
+          minLength: 40
+          maxLength: 40
+          example: ea5d0a593b2655e9568f144fb1826342292f5c6b
+        name: access_token
+        in: path
+        required: true
+        description: アクセストークンを表現する文字列
+    delete:
+      summary: ''
+      operationId: delete-api-v2-access_tokens-access_token
+      responses:
+        '200':
+          description: OK
+      description: |
+        指定されたアクセストークンを失効させ、それ以降利用できないようにします。
+      tags:
+        - auth
+  /api/v2/groups:
+    get:
+      summary: Get groups
+      tags:
+        - team
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GetGroupsResponse'
+        '404':
+          description: Not Found
+      operationId: get-groups
+      description: チーム内に存在するグループ一覧のうち未参加のプライベートグループ以外を作成日時の降順で返します。
+      parameters:
+        - $ref: '#/components/parameters/page'
+        - $ref: '#/components/parameters/per_page'
+    parameters: []
+  '/api/v2/groups/{url_name}':
+    get:
+      summary: Get group
+      tags:
+        - team
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GetGroupResponse'
+        '404':
+          description: Not Found
+      operationId: get-group
+      description: グループを取得します。
+      parameters: []
+    parameters:
+      - schema:
+          type: string
+        name: url_name
+        in: path
+        description: グループのチーム上での一意な名前
+        required: true
+  /api/v2/items:
+    get:
+      summary: Get items
+      tags:
+        - item
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GetItemsResponse'
+      operationId: get-items
+      parameters:
+        - $ref: '#/components/parameters/page'
+        - $ref: '#/components/parameters/per_page'
+        - $ref: '#/components/parameters/query'
+      description: 記事の一覧を作成日時の降順で返します。
+    post:
+      summary: Create item
+      operationId: create-item
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreateItemResponse'
+      description: |-
+        新たに記事を作成します。
+
+        Create a new article.
+      tags:
+        - item
+        - user
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateItemRequest'
+  '/api/v2/items/{item_id}/likes':
+    parameters:
+      - schema:
+          type: string
+        name: item_id
+        in: path
+        required: true
+        description: Article ID
+    get:
+      summary: Get item likes
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GetItemLikesResponse'
+              examples: {}
+      operationId: get-item-likes
+      description: |-
+        Qiita TeamのいいねAPIは2020年11月4日より廃止となりました。今後は絵文字リアクションAPIをご利用ください。 
+        記事につけられた「いいね」を作成日時の降順で返します。
+      tags:
+        - item
+  '/api/v2/items/{item_id}/stockers':
+    parameters:
+      - schema:
+          type: string
+        name: item_id
+        in: path
+        required: true
+        description: Article ID
+    get:
+      summary: Get item stockers
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GetItemStockersResponse'
+              examples: {}
+      operationId: get-item-stockers
+      description: 記事をストックしているユーザー一覧を、ストックした日時の降順で返します。
+      tags:
+        - item
+      parameters:
+        - $ref: '#/components/parameters/page'
+        - $ref: '#/components/parameters/per_page'
+  '/api/v2/items/{item_id}':
+    parameters:
+      - schema:
+          type: string
+        name: item_id
+        in: path
+        required: true
+        description: Article ID
+    delete:
+      summary: Get item stockers
+      responses:
+        '204':
+          description: No Content
+          content: {}
+        '404':
+          description: Not Found
+      operationId: delete-item
+      description: 記事を削除します。
+      tags:
+        - item
+      parameters: []
+    get:
+      summary: ''
+      operationId: get-item
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GetItemResponse'
+      description: 記事を取得します。
+      tags:
+        - item
+    patch:
+      summary: ''
+      operationId: update-item
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UpdateItemResponse'
+      description: 記事を更新します。
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateItemRequest'
+      tags:
+        - item
+  /api/v2/users:
+    get:
+      summary: Get users
+      tags:
+        - user
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GetUsersResponse'
+      operationId: get-users
+      parameters:
+        - $ref: '#/components/parameters/page'
+        - $ref: '#/components/parameters/per_page'
+      description: 全てのユーザーの一覧を作成日時の降順で取得します。
+  '/api/v2/users/{user_id}':
+    get:
+      summary: Get user
+      tags:
+        - user
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GetUserResponse'
+      operationId: get-user
+      description: ユーザーを取得します。
+    parameters:
+      - schema:
+          type: string
+        name: user_id
+        in: path
+        required: true
+        description: ユーザーID
+  '/api/v2/users/{user_id}/followees':
+    get:
+      summary: Get user followees
+      tags:
+        - user
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GetUserFolloweesResponse'
+      operationId: get-user-followees
+      description: ユーザーがフォローしているユーザー一覧を取得します。
+      parameters:
+        - $ref: '#/components/parameters/page'
+        - $ref: '#/components/parameters/per_page'
+    parameters:
+      - schema:
+          type: string
+        name: user_id
+        in: path
+        required: true
+        description: ユーザーID
+  '/api/v2/users/{user_id}/followers':
+    get:
+      summary: Get user followers
+      tags:
+        - user
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GetUserFolloweesResponse'
+      operationId: get-user-followers
+      description: ユーザーをフォローしているユーザー一覧を取得します。
+      parameters:
+        - $ref: '#/components/parameters/page'
+        - $ref: '#/components/parameters/per_page'
+    parameters:
+      - schema:
+          type: string
+        name: user_id
+        in: path
+        required: true
+        description: ユーザーID
+  '/api/v2/users/{user_id}/following':
+    delete:
+      summary: Unfollow
+      tags:
+        - user
+      responses:
+        '204':
+          description: No Content
+        '403':
+          description: Forbidden
+      operationId: unfollow
+      description: ユーザーへのフォローを外します。
+    parameters:
+      - schema:
+          type: string
+        name: user_id
+        in: path
+        required: true
+        description: ユーザーID
+    get:
+      summary: Is user following
+      operationId: is-user-following
+      responses:
+        '204':
+          description: No Content
+        '404':
+          description: Not Found
+      description: ユーザーをフォローしている場合に204を返します。
+      tags:
+        - user
+    put:
+      summary: Follow
+      operationId: follow
+      responses:
+        '200':
+          description: OK
+        '403':
+          description: Forbidden
+      description: ユーザーをフォローします。
+      tags:
+        - user
+  /api/v2/authenticated_user:
+    get:
+      summary: Get authenticated user
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GetAuthenticatedUserResponse'
+      operationId: get-authenticated-user
+      description: アクセストークンに紐付いたユーザーを返します。
+      tags:
+        - user
+  /api/v2/authenticated_user/items:
+    get:
+      summary: Get authenticated user items
+      tags:
+        - item
+        - user
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GetItemResponse'
+      operationId: get-authenticated-user-items
+      parameters:
+        - $ref: '#/components/parameters/page'
+        - $ref: '#/components/parameters/per_page'
+      description: 認証中のユーザーの記事の一覧を作成日時の降順で返します。
+components:
+  securitySchemes:
+    Bearer:
+      type: http
+      scheme: bearer
+      description: Personal access token
+  schemas:
+    User:
+      type: object
+      x-examples:
+        Example 1:
+          description: 'Hello, world.'
+          facebook_id: qiita
+          followees_count: 100
+          followers_count: 200
+          github_login_name: qiitan
+          id: qiita
+          items_count: 300
+          linkedin_id: qiita
+          location: 'Tokyo, Japan'
+          name: Qiita キータ
+          organization: Qiita Inc.
+          permanent_id: 1
+          profile_image_url: 'https://s3-ap-northeast-1.amazonaws.com/qiita-image-store/0/88/ccf90b557a406157dbb9d2d7e543dae384dbb561/large.png?1575443439'
+          team_only: false
+          twitter_screen_name: qiita
+          website_url: 'https://qiita.com'
+      properties:
+        description:
+          type: string
+          description: 自己紹介文
+          nullable: true
+        facebook_id:
+          type: string
+          description: Facebook ID
+          nullable: true
+        followees_count:
+          type: integer
+          description: このユーザーがフォローしているユーザーの数
+        followers_count:
+          type: integer
+          description: このユーザーをフォローしているユーザーの数
+        github_login_name:
+          type: string
+          description: GitHub ID
+          nullable: true
+        id:
+          type: string
+          description: ユーザーID
+        items_count:
+          type: integer
+          description: このユーザーが qiita.com 上で公開している記事の数 (Qiita Teamでの記事数は含まれません)
+        linkedin_id:
+          type: string
+          description: LinkedIn ID
+          nullable: true
+        location:
+          type: string
+          description: 居住地
+          nullable: true
+        name:
+          type: string
+          description: 設定している名前
+          nullable: true
+        organization:
+          type: string
+          description: 所属している組織
+          nullable: true
+        permanent_id:
+          type: integer
+          description: ユーザーごとに割り当てられる整数のID
+        profile_image_url:
+          type: string
+          description: 設定しているプロフィール画像のURL
+        team_only:
+          type: boolean
+          description: Qiita Team専用モードに設定されているかどうか
+        twitter_screen_name:
+          type: string
+          description: Twitterのスクリーンネーム
+          nullable: true
+        website_url:
+          type: string
+          description: 設定しているWebサイトのURL
+          nullable: true
+      required:
+        - description
+        - facebook_id
+        - followees_count
+        - followers_count
+        - github_login_name
+        - id
+        - items_count
+        - linkedin_id
+        - location
+        - name
+        - organization
+        - permanent_id
+        - profile_image_url
+        - team_only
+        - twitter_screen_name
+        - website_url
+    AuthenticatedUser:
+      x-examples:
+        Example 1:
+          description: 'Hello, world.'
+          facebook_id: qiita
+          followees_count: 100
+          followers_count: 200
+          github_login_name: qiitan
+          id: qiita
+          items_count: 300
+          linkedin_id: qiita
+          location: 'Tokyo, Japan'
+          name: Qiita キータ
+          organization: Qiita Inc.
+          permanent_id: 1
+          profile_image_url: 'https://s3-ap-northeast-1.amazonaws.com/qiita-image-store/0/88/ccf90b557a406157dbb9d2d7e543dae384dbb561/large.png?1575443439'
+          team_only: false
+          twitter_screen_name: qiita
+          website_url: 'https://qiita.com'
+          image_monthly_upload_limit: 1048576
+          image_monthly_upload_remaining: 524288
+      allOf:
+        - $ref: '#/components/schemas/User'
+        - type: object
+          properties:
+            image_monthly_upload_limit:
+              type: integer
+              description: 1ヶ月あたりにQiitaにアップロードできる画像の総容量
+            image_monthly_upload_remaining:
+              type: integer
+              description: その月にQiitaにアップロードできる画像の残りの容量
+          required:
+            - image_monthly_upload_limit
+            - image_monthly_upload_remaining
+    Group:
+      type: object
+      x-examples:
+        Example 1:
+          created_at: '2000-01-01T00:00:00+00:00'
+          description: This group is for developers.
+          name: Dev
+          private: false
+          updated_at: '2000-01-01T00:00:00+00:00'
+          url_name: dev
+      description: Qiita Teamのグループを表します。
+      properties:
+        created_at:
+          type: string
+          description: データが作成された日時
+          example: '2000-01-01T00:00:00+00:00'
+        description:
+          type: string
+          description: グループの詳細を表します。
+          example: This group is for developers.
+        name:
+          type: string
+          description: グループに付けられた表示用の名前を表します。
+          example: Dev
+        private:
+          type: boolean
+          description: 非公開グループかどうかを表します。
+        updated_at:
+          type: string
+          description: データが最後に更新された日時
+          example: '2000-01-01T00:00:00+00:00'
+        url_name:
+          type: string
+          description: グループのチーム上での一意な名前を表します。
+          example: dev
+      required:
+        - created_at
+        - description
+        - name
+        - private
+        - updated_at
+        - url_name
+    ItemTag:
+      type: object
+      x-examples:
+        Example 1:
+          name: Ruby
+          versions:
+            - 0.0.1
+      properties:
+        name:
+          type: string
+          description: タグ名
+        versions:
+          type: array
+          description: バージョン
+          items:
+            type: string
+      required:
+        - name
+        - versions
+    ItemTeamMembership:
+      title: ItemTeamMembership
+      x-stoplight:
+        id: wy6nwu114gzjk
+      type: object
+      properties:
+        name:
+          type: string
+          x-stoplight:
+            id: b0f9he75ee68o
+          description: チームに登録しているユーザー名
+      required:
+        - name
+    Item:
+      type: object
+      x-examples:
+        Example 1:
+          rendered_body: <h1>Example</h1>
+          body: '# Example'
+          coediting: false
+          comments_count: 100
+          created_at: '2000-01-01T00:00:00+00:00'
+          group:
+            created_at: '2000-01-01T00:00:00+00:00'
+            description: This group is for developers.
+            name: Dev
+            private: false
+            updated_at: '2000-01-01T00:00:00+00:00'
+            url_name: dev
+          id: c686397e4a0f4f11683d
+          likes_count: 100
+          private: false
+          reactions_count: 100
+          stocks_count: 100
+          tags:
+            - name: Ruby
+              versions:
+                - 0.0.1
+          title: Example title
+          updated_at: '2000-01-01T00:00:00+00:00'
+          url: 'https://qiita.com/Qiita/items/c686397e4a0f4f11683d'
+          user:
+            description: 'Hello, world.'
+            facebook_id: qiita
+            followees_count: 100
+            followers_count: 200
+            github_login_name: qiitan
+            id: qiita
+            items_count: 300
+            linkedin_id: qiita
+            location: 'Tokyo, Japan'
+            name: Qiita キータ
+            organization: Qiita Inc.
+            permanent_id: 1
+            profile_image_url: 'https://s3-ap-northeast-1.amazonaws.com/qiita-image-store/0/88/ccf90b557a406157dbb9d2d7e543dae384dbb561/large.png?1575443439'
+            team_only: false
+            twitter_screen_name: qiita
+            website_url: 'https://qiita.com'
+          page_views_count: 100
+          team_membership:
+            name: Qiita キータ
+          organization_url_name: qiita-inc
+          slide: false
+      properties:
+        rendered_body:
+          type: string
+          description: HTML形式の本文
+        body:
+          type: string
+          description: Markdown形式の本文
+        coediting:
+          type: boolean
+          description: この記事が共同更新状態かどうか (Qiita Teamでのみ有効)
+        comments_count:
+          type: integer
+          description: この記事へのコメントの数
+        created_at:
+          type: string
+          description: データが作成された日時
+        group:
+          $ref: '#/components/schemas/Group'
+        id:
+          type: string
+          description: 記事の一意なID
+        likes_count:
+          type: integer
+          description: この記事への「いいね」の数（Qiitaでのみ有効）
+        private:
+          type: boolean
+          description: 限定共有状態かどうかを表すフラグ (Qiita Teamでは無効)
+        reactions_count:
+          type: integer
+          description: 絵文字リアクションの数（Qiita Teamでのみ有効）
+        stocks_count:
+          type: integer
+          description: この記事がストックされた数
+        tags:
+          type: array
+          description: 記事に付いたタグ一覧
+          items:
+            $ref: '#/components/schemas/ItemTag'
+        title:
+          type: string
+          description: 記事のタイトル
+        updated_at:
+          type: string
+          description: データが最後に更新された日時
+        url:
+          type: string
+          description: 記事のURL
+        user:
+          $ref: '#/components/schemas/User'
+        page_views_count:
+          type: integer
+          description: 閲覧数
+          nullable: true
+        team_membership:
+          $ref: '#/components/schemas/ItemTeamMembership'
+        slide:
+          type: boolean
+          description: スライドモードが有効を表すフラグ
+        organization_url_name:
+          type: string
+          description: 記事のOrganization の url_name を表します。
+          nullable: true
+      required:
+        - rendered_body
+        - body
+        - coediting
+        - comments_count
+        - created_at
+        - id
+        - likes_count
+        - private
+        - reactions_count
+        - stocks_count
+        - tags
+        - title
+        - updated_at
+        - url
+        - user
+        - page_views_count
+        - slide
+        - organization_url_name
+    LikeHistory:
+      type: object
+      x-examples:
+        Example 1:
+          created_at: '2000-01-01T00:00:00+00:00'
+          user:
+            description: 'Hello, world.'
+            facebook_id: qiita
+            followees_count: 100
+            followers_count: 200
+            github_login_name: qiitan
+            id: qiita
+            items_count: 300
+            linkedin_id: qiita
+            location: 'Tokyo, Japan'
+            name: Qiita キータ
+            organization: Qiita Inc.
+            permanent_id: 1
+            profile_image_url: 'https://s3-ap-northeast-1.amazonaws.com/qiita-image-store/0/88/ccf90b557a406157dbb9d2d7e543dae384dbb561/large.png?1575443439'
+            team_only: false
+            twitter_screen_name: qiita
+            website_url: 'https://qiita.com'
+      properties:
+        created_at:
+          type: string
+        user:
+          $ref: '#/components/schemas/User'
+      required:
+        - created_at
+        - user
+    IssueAccessTokenRequest:
+      type: object
+      x-examples:
+        Example 1:
+          client_id: a91f0396a0968ff593eafdd194e3d17d32c41b1d
+          client_secret: 01fc259c31fe39e72c8ef911c3432a33d51e9337
+          code: fefef5f067171f247fb415e38cb0631797b82f41
+      properties:
+        client_id:
+          type: string
+          description: 登録されたAPIクライアントを特定するためのID
+          pattern: '^[0-9a-f]{40}$'
+          minLength: 40
+          maxLength: 40
+          example: a91f0396a0968ff593eafdd194e3d17d32c41b1d
+        client_secret:
+          type: string
+          description: 登録されたAPIクライアントを認証するための秘密鍵
+          pattern: '^[0-9a-f]{40}$'
+          minLength: 40
+          maxLength: 40
+          example: 01fc259c31fe39e72c8ef911c3432a33d51e9337
+        code:
+          type: string
+          description: リダイレクト用のURLに付与された、アクセストークンと交換するための文字列
+          pattern: '^[0-9a-f]{40}$'
+          minLength: 40
+          maxLength: 40
+          example: fefef5f067171f247fb415e38cb0631797b82f41
+      required:
+        - client_id
+        - client_secret
+        - code
+    IssueAccessTokenResponse:
+      type: object
+      x-examples:
+        Example 1:
+          client_id: a91f0396a0968ff593eafdd194e3d17d32c41b1d
+          scopes:
+            - read_qiita
+          token: ea5d0a593b2655e9568f144fb1826342292f5c6b7d406fda00577b8d1530d8a5
+      properties:
+        client_id:
+          type: string
+          description: 登録されたAPIクライアントを特定するためのID
+          example: a91f0396a0968ff593eafdd194e3d17d32c41b1d
+          pattern: '^[0-9a-f]{40}$'
+          minLength: 40
+          maxLength: 40
+        scopes:
+          type: array
+          description: アクセストークンに許された操作の一覧
+          items:
+            type: string
+            example: read_qiita
+        token:
+          type: string
+          description: アクセストークンを表現する文字列
+          example: ea5d0a593b2655e9568f144fb1826342292f5c6b
+          pattern: '^[0-9a-f]{40}$'
+          minLength: 40
+          maxLength: 40
+      required:
+        - client_id
+        - scopes
+        - token
+    GetGroupsResponse:
+      x-stoplight:
+        id: i6g18o1bpex4h
+      type: array
+      items:
+        $ref: '#/components/schemas/Group'
+    GetGroupResponse:
+      $ref: '#/components/schemas/Group'
+    GetItemsResponse:
+      title: GetItemResponse
+      x-stoplight:
+        id: wqysjynegbik2
+      type: array
+      items:
+        $ref: '#/components/schemas/Item'
+    CreateItemRequest:
+      type: object
+      x-examples:
+        Example 1:
+          body: '# Example'
+          coediting: false
+          group_url_name: dev
+          private: false
+          tags:
+            - name: Ruby
+              versions:
+                - 0.0.1
+          title: Example title
+          tweet: false
+          organization_url_name: qiita-inc
+          slide: false
+      properties:
+        body:
+          type: string
+          description: Markdown形式の本文
+          example: '# Example'
+        coediting:
+          type: boolean
+          description: この記事が共同更新状態かどうか (Qiita Teamでのみ有効)
+        group_url_name:
+          type: string
+          description: この投稿を公開するグループの url_name (null で全体に公開。Qiita Teamでのみ有効)
+          nullable: true
+        private:
+          type: boolean
+          description: 限定共有状態かどうかを表すフラグ (Qiita Teamでは無効)
+        tags:
+          type: array
+          description: 記事に付いたタグ一覧
+          items:
+            $ref: '#/components/schemas/ItemTag'
+        title:
+          type: string
+          description: 記事のタイトル
+          example: Example title
+        tweet:
+          type: boolean
+          description: Twitterに投稿するかどうか (Twitter連携を有効化している場合のみ有効)
+        organization_url_name:
+          type: string
+          description: 記事のOrganization の url_name を表します。
+          example: qiita-inc
+          nullable: true
+        slide:
+          type: boolean
+          description: スライドモードが有効を表すフラグ
+      required:
+        - body
+        - tags
+        - title
+    CreateItemResponse:
+      $ref: '#/components/schemas/Item'
+    GetItemResponse:
+      $ref: '#/components/schemas/Item'
+    UpdateItemRequest:
+      type: object
+      x-stoplight:
+        id: 9bdxntxxj3aj9
+      x-examples:
+        Example 1:
+          body: '# Example'
+          coediting: false
+          group_url_name: dev
+          private: false
+          tags:
+            - name: Ruby
+              versions:
+                - 0.0.1
+          title: Example title
+          tweet: false
+          organization_url_name: qiita-inc
+          slide: false
+      properties:
+        body:
+          type: string
+          description: Markdown形式の本文
+          example: '# Example'
+        coediting:
+          type: boolean
+          description: この記事が共同更新状態かどうか (Qiita Teamでのみ有効)
+        group_url_name:
+          type: string
+          description: この投稿を公開するグループの url_name (null で全体に公開。Qiita Teamでのみ有効)
+          nullable: true
+        private:
+          type: boolean
+          description: 限定共有状態かどうかを表すフラグ (Qiita Teamでは無効)
+        tags:
+          type: array
+          description: 記事に付いたタグ一覧
+          items:
+            $ref: '#/components/schemas/ItemTag'
+        title:
+          type: string
+          description: 記事のタイトル
+          example: Example title
+        tweet:
+          type: boolean
+          description: Twitterに投稿するかどうか (Twitter連携を有効化している場合のみ有効)
+        organization_url_name:
+          type: string
+          description: 記事のOrganization の url_name を表します。
+          example: qiita-inc
+          nullable: true
+        slide:
+          type: boolean
+          description: スライドモードが有効を表すフラグ
+      required:
+        - body
+        - tags
+        - title
+    UpdateItemResponse:
+      $ref: '#/components/schemas/Item'
+    GetItemLikesResponse:
+      title: GetItemLikesResponse
+      x-stoplight:
+        id: oipl9hcpfuh1v
+      type: array
+      items:
+        $ref: '#/components/schemas/LikeHistory'
+    GetItemStockersResponse:
+      type: array
+      x-examples:
+        Example 1:
+          - description: 'Hello, world.'
+            facebook_id: qiita
+            followees_count: 100
+            followers_count: 200
+            github_login_name: qiitan
+            id: qiita
+            items_count: 300
+            linkedin_id: qiita
+            location: 'Tokyo, Japan'
+            name: Qiita キータ
+            organization: Qiita Inc.
+            permanent_id: 1
+            profile_image_url: 'https://s3-ap-northeast-1.amazonaws.com/qiita-image-store/0/88/ccf90b557a406157dbb9d2d7e543dae384dbb561/large.png?1575443439'
+            team_only: false
+            twitter_screen_name: qiita
+            website_url: 'https://qiita.com'
+      items:
+        $ref: '#/components/schemas/User'
+    GetUsersResponse:
+      type: array
+      x-stoplight:
+        id: d93fcsjitf7vm
+      x-examples:
+        Example 1:
+          - description: 'Hello, world.'
+            facebook_id: qiita
+            followees_count: 100
+            followers_count: 200
+            github_login_name: qiitan
+            id: qiita
+            items_count: 300
+            linkedin_id: qiita
+            location: 'Tokyo, Japan'
+            name: Qiita キータ
+            organization: Qiita Inc.
+            permanent_id: 1
+            profile_image_url: 'https://s3-ap-northeast-1.amazonaws.com/qiita-image-store/0/88/ccf90b557a406157dbb9d2d7e543dae384dbb561/large.png?1575443439'
+            team_only: false
+            twitter_screen_name: qiita
+            website_url: 'https://qiita.com'
+      items:
+        $ref: '#/components/schemas/User'
+    GetUserResponse:
+      $ref: '#/components/schemas/User'
+    GetUserFolloweesResponse:
+      type: array
+      x-stoplight:
+        id: lzcb7wkjj40wb
+      x-examples:
+        Example 1:
+          - description: 'Hello, world.'
+            facebook_id: qiita
+            followees_count: 100
+            followers_count: 200
+            github_login_name: qiitan
+            id: qiita
+            items_count: 300
+            linkedin_id: qiita
+            location: 'Tokyo, Japan'
+            name: Qiita キータ
+            organization: Qiita Inc.
+            permanent_id: 1
+            profile_image_url: 'https://s3-ap-northeast-1.amazonaws.com/qiita-image-store/0/88/ccf90b557a406157dbb9d2d7e543dae384dbb561/large.png?1575443439'
+            team_only: false
+            twitter_screen_name: qiita
+            website_url: 'https://qiita.com'
+      items:
+        $ref: '#/components/schemas/User'
+    GetUserFollowersResponse:
+      type: array
+      x-stoplight:
+        id: ahfihijaizyio
+      x-examples:
+        Example 1:
+          - description: 'Hello, world.'
+            facebook_id: qiita
+            followees_count: 100
+            followers_count: 200
+            github_login_name: qiitan
+            id: qiita
+            items_count: 300
+            linkedin_id: qiita
+            location: 'Tokyo, Japan'
+            name: Qiita キータ
+            organization: Qiita Inc.
+            permanent_id: 1
+            profile_image_url: 'https://s3-ap-northeast-1.amazonaws.com/qiita-image-store/0/88/ccf90b557a406157dbb9d2d7e543dae384dbb561/large.png?1575443439'
+            team_only: false
+            twitter_screen_name: qiita
+            website_url: 'https://qiita.com'
+      items:
+        $ref: '#/components/schemas/User'
+    GetAuthenticatedUserResponse:
+      $ref: '#/components/schemas/AuthenticatedUser'
+    GetAuthenticatedUserItemsResponse:
+      type: array
+      items:
+        type: object
+        properties:
+          rendered_body:
+            type: string
+          body:
+            type: string
+          coediting:
+            type: boolean
+          comments_count:
+            type: integer
+          created_at:
+            type: string
+          group:
+            type: object
+            properties:
+              created_at:
+                type: string
+              description:
+                type: string
+              name:
+                type: string
+              private:
+                type: boolean
+              updated_at:
+                type: string
+              url_name:
+                type: string
+          id:
+            type: string
+          likes_count:
+            type: integer
+          private:
+            type: boolean
+          reactions_count:
+            type: integer
+          stocks_count:
+            type: integer
+          tags:
+            type: array
+            items:
+              type: object
+              properties:
+                name:
+                  type: string
+                versions:
+                  type: array
+                  items:
+                    type: string
+          title:
+            type: string
+          updated_at:
+            type: string
+          url:
+            type: string
+          user:
+            type: object
+            properties:
+              description:
+                type: string
+              facebook_id:
+                type: string
+              followees_count:
+                type: integer
+              followers_count:
+                type: integer
+              github_login_name:
+                type: string
+              id:
+                type: string
+              items_count:
+                type: integer
+              linkedin_id:
+                type: string
+              location:
+                type: string
+              name:
+                type: string
+              organization:
+                type: string
+              permanent_id:
+                type: integer
+              profile_image_url:
+                type: string
+              team_only:
+                type: boolean
+              twitter_screen_name:
+                type: string
+              website_url:
+                type: string
+          page_views_count:
+            type: integer
+          team_membership:
+            type: object
+            properties:
+              name:
+                type: string
+          organization_url_name:
+            type: string
+          slide:
+            type: boolean
+      x-examples:
+        Example 1:
+          - rendered_body: <h1>Example</h1>
+            body: '# Example'
+            coediting: false
+            comments_count: 100
+            created_at: '2000-01-01T00:00:00+00:00'
+            group:
+              created_at: '2000-01-01T00:00:00+00:00'
+              description: This group is for developers.
+              name: Dev
+              private: false
+              updated_at: '2000-01-01T00:00:00+00:00'
+              url_name: dev
+            id: c686397e4a0f4f11683d
+            likes_count: 100
+            private: false
+            reactions_count: 100
+            stocks_count: 100
+            tags:
+              - name: Ruby
+                versions:
+                  - 0.0.1
+            title: Example title
+            updated_at: '2000-01-01T00:00:00+00:00'
+            url: 'https://qiita.com/Qiita/items/c686397e4a0f4f11683d'
+            user:
+              description: 'Hello, world.'
+              facebook_id: qiita
+              followees_count: 100
+              followers_count: 200
+              github_login_name: qiitan
+              id: qiita
+              items_count: 300
+              linkedin_id: qiita
+              location: 'Tokyo, Japan'
+              name: Qiita キータ
+              organization: Qiita Inc.
+              permanent_id: 1
+              profile_image_url: 'https://s3-ap-northeast-1.amazonaws.com/qiita-image-store/0/88/ccf90b557a406157dbb9d2d7e543dae384dbb561/large.png?1575443439'
+              team_only: false
+              twitter_screen_name: qiita
+              website_url: 'https://qiita.com'
+            page_views_count: 100
+            team_membership:
+              name: Qiita キータ
+            organization_url_name: qiita-inc
+            slide: false
+  responses: {}
+  parameters:
+    page:
+      name: page
+      in: query
+      schema:
+        type: integer
+        pattern: '/^[0-9]+$/'
+        minLength: 1
+        maxLength: 100
+        example: 1
+        minimum: 1
+        maximum: 100
+      description: ページ番号 (1から100まで)
+    per_page:
+      name: per_page
+      in: query
+      schema:
+        type: integer
+        pattern: '/^[0-9]+$/'
+        minLength: 1
+        maxLength: 100
+        minimum: 1
+        maximum: 100
+        example: 20
+      description: 1ページあたりに含まれる要素数 (1から100まで)
+    query:
+      name: query
+      in: query
+      required: false
+      schema:
+        type: string
+        example: 'qiita user:Qiita'
+      description: 検索クエリ
+    client_id:
+      name: client_id
+      in: query
+      required: true
+      schema:
+        type: string
+        example: a91f0396a0968ff593eafdd194e3d17d32c41b1d
+        pattern: '^[0-9a-f]{40}$'
+        minLength: 40
+        maxLength: 40
+      description: 登録されたAPIクライアントを特定するためのIDです。40桁の16進数で表現されます。
+    scope:
+      name: scope
+      in: query
+      required: true
+      schema:
+        type: string
+        example: read_qiita write_qiita_team
+      description: アプリケーションが利用するスコープをスペース区切りで指定できます。
+    state:
+      name: state
+      in: query
+      required: true
+      schema:
+        type: string
+        example: CSRF対策のため、認可後にリダイレクトするURLのクエリに含まれる値を指定できます。
+      description: CSRF対策のため、認可後にリダイレクトするURLのクエリに含まれる値を指定できます。
+x-internal: false
