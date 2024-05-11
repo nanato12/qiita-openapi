@@ -179,8 +179,8 @@ paths:
       summary: Create group
       operationId: create-group
       responses:
-        '200':
-          description: OK
+        '201':
+          description: Created
           content:
             application/json:
               schema:
@@ -289,8 +289,8 @@ paths:
       summary: Add group members
       operationId: add-group-members
       responses:
-        '200':
-          description: OK
+        '201':
+          description: Created
           content:
             application/json:
               schema:
@@ -356,8 +356,8 @@ paths:
       summary: Create item
       operationId: create-item
       responses:
-        '200':
-          description: OK
+        '201':
+          description: Created
           content:
             application/json:
               schema:
@@ -537,8 +537,8 @@ paths:
       summary: Create comment
       operationId: create-comment
       responses:
-        '200':
-          description: OK
+        '201':
+          description: Created
           content:
             application/json:
               schema:
@@ -564,8 +564,8 @@ paths:
       summary: Create imported comment
       operationId: create-imported-comment
       responses:
-        '200':
-          description: OK
+        '201':
+          description: Created
           content:
             application/json:
               schema:
