@@ -816,8 +816,6 @@ paths:
                 $ref: '#/components/schemas/GetCommentResponse'
       operationId: get-comment
       description: コメントを取得します。
-      requestBody:
-        content: {}
     patch:
       summary: Update comment
       operationId: update-comment
