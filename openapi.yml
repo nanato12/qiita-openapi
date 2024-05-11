@@ -85,16 +85,12 @@ servers:
 security:
   - Bearer: []
 tags:
-  - name: auth
   - name: user
-  - name: item
   - name: team
 paths:
   /api/v2/oauth/authorize:
     get:
       summary: Get OAuth authorize
-      tags:
-        - auth
       responses:
         '200':
           description: OK
@@ -106,12 +102,13 @@ paths:
         - $ref: '#/components/parameters/client_id'
         - $ref: '#/components/parameters/scope'
         - $ref: '#/components/parameters/state'
+      tags:
+        - user
   /api/v2/oauth/team_authorize:
     get:
       summary: Get OAuth team authorize
       tags:
         - team
-        - auth
       responses:
         '200':
           description: OK
@@ -135,7 +132,7 @@ paths:
             schema:
               $ref: '#/components/schemas/IssueAccessTokenRequest'
       tags:
-        - auth
+        - user
   '/api/v2/access_tokens/{access_token}':
     parameters:
       - schema:
@@ -157,7 +154,7 @@ paths:
       description: |
         指定されたアクセストークンを失効させ、それ以降利用できないようにします。
       tags:
-        - auth
+        - user
   /api/v2/groups:
     get:
       summary: Get groups
@@ -178,6 +175,25 @@ paths:
         - $ref: '#/components/parameters/page'
         - $ref: '#/components/parameters/per_page'
     parameters: []
+    post:
+      summary: Create group
+      operationId: create-group
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreateGroupResponse'
+      description: 新たにグループを作成します。
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateGroupRequest'
+        description: ''
+      tags:
+        - team
   '/api/v2/groups/{url_name}':
     get:
       summary: Get group
@@ -202,11 +218,124 @@ paths:
         in: path
         description: グループのチーム上での一意な名前
         required: true
+    patch:
+      summary: Update group
+      operationId: update-group
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UpdateGroupResponse'
+      description: グループを更新します。
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateGroupRequest'
+      tags:
+        - team
+    delete:
+      summary: Delete group
+      operationId: delete-group
+      responses:
+        '204':
+          description: No Content
+      description: グループを削除します。
+      tags:
+        - team
+  '/api/v2/groups/{url_name}/members':
+    get:
+      summary: Get group members
+      tags:
+        - team
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GetGroupResponse'
+        '404':
+          description: Not Found
+      operationId: get-group-members
+      description: チーム内に存在する特定のグループ一のメンバー一覧を作成日時の降順で返します。
+      parameters:
+        - $ref: '#/components/parameters/page'
+        - $ref: '#/components/parameters/per_page'
+    parameters:
+      - schema:
+          type: string
+        name: url_name
+        in: path
+        description: グループのチーム上での一意な名前
+        required: true
+    delete:
+      summary: Delete group members
+      operationId: delete-group-members
+      responses:
+        '204':
+          description: No Content
+      description: グループからメンバーを脱退させます。
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DeleteGroupMemberRequest'
+      tags:
+        - team
+    post:
+      summary: Add group members
+      operationId: add-group-members
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AddGroupMemberResponse'
+      description: 新たにグループにメンバーを追加します。
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AddGroupMemberRequest'
+      tags:
+        - team
+  '/api/v2/groups/{url_name}/members/{user_id}':
+    get:
+      summary: Get group member
+      tags:
+        - team
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GetGroupResponse'
+        '404':
+          description: Not Found
+      operationId: get-group-member
+      description: グループのメンバーの名前を取得します。
+      parameters: []
+    parameters:
+      - schema:
+          type: string
+        name: url_name
+        in: path
+        description: グループのチーム上での一意な名前
+        required: true
+      - schema:
+          type: string
+        name: user_id
+        in: path
+        required: true
+        description: ユーザーID
   /api/v2/items:
     get:
       summary: Get items
-      tags:
-        - item
       responses:
         '200':
           description: OK
@@ -220,6 +349,9 @@ paths:
         - $ref: '#/components/parameters/per_page'
         - $ref: '#/components/parameters/query'
       description: 記事の一覧を作成日時の降順で返します。
+      tags:
+        - user
+        - team
     post:
       summary: Create item
       operationId: create-item
@@ -235,13 +367,54 @@ paths:
 
         Create a new article.
       tags:
-        - item
         - user
+        - team
       requestBody:
         content:
           application/json:
             schema:
               $ref: '#/components/schemas/CreateItemRequest'
+  '/api/v2/items/{item_id}/like':
+    parameters:
+      - schema:
+          type: string
+        name: item_id
+        in: path
+        required: true
+        description: Article ID
+    put:
+      summary: Create item like
+      operationId: create-item-like
+      responses:
+        '204':
+          description: No Content
+        '403':
+          description: Forbidden
+      description: Qiita TeamのいいねAPIは2020年11月4日より廃止となりました。今後は絵文字リアクションAPIをご利用ください。 記事に「いいね」を付けます。
+      tags:
+        - user
+    delete:
+      summary: Delete item like
+      operationId: delete-item-like
+      responses:
+        '204':
+          description: No Content
+        '404':
+          description: Not Found
+      description: Qiita TeamのいいねAPIは2020年11月4日より廃止となりました。今後は絵文字リアクションAPIをご利用ください。 記事への「いいね」を取り消します。
+      tags:
+        - user
+    get:
+      summary: Is item like
+      operationId: is-item-like
+      responses:
+        '204':
+          description: No Content
+        '404':
+          description: Not Found
+      description: Qiita TeamのいいねAPIは2020年11月4日より廃止となりました。今後は絵文字リアクションAPIをご利用ください。 記事に「いいね」を付けているかどうかを調べます。
+      tags:
+        - user
   '/api/v2/items/{item_id}/likes':
     parameters:
       - schema:
@@ -265,7 +438,51 @@ paths:
         Qiita TeamのいいねAPIは2020年11月4日より廃止となりました。今後は絵文字リアクションAPIをご利用ください。 
         記事につけられた「いいね」を作成日時の降順で返します。
       tags:
-        - item
+        - user
+  '/api/v2/items/{item_id}/stock':
+    parameters:
+      - schema:
+          type: string
+        name: item_id
+        in: path
+        required: true
+        description: Article ID
+    put:
+      summary: Create item stock
+      operationId: create-item-stock
+      responses:
+        '204':
+          description: No Content
+        '403':
+          description: Forbidden
+      description: 記事をストックします。
+      tags:
+        - user
+        - team
+    delete:
+      summary: Delete item stock
+      operationId: delete-item-stock
+      responses:
+        '204':
+          description: No Content
+        '404':
+          description: Not Found
+      description: 記事をストックから取り除きます。
+      tags:
+        - user
+        - team
+    get:
+      summary: Is item stock
+      operationId: is-item-stock
+      responses:
+        '204':
+          description: No Content
+        '404':
+          description: Not Found
+      description: 記事をストックしているかどうかを調べます。
+      tags:
+        - user
+        - team
   '/api/v2/items/{item_id}/stockers':
     parameters:
       - schema:
@@ -287,10 +504,80 @@ paths:
       operationId: get-item-stockers
       description: 記事をストックしているユーザー一覧を、ストックした日時の降順で返します。
       tags:
-        - item
+        - team
+        - user
       parameters:
         - $ref: '#/components/parameters/page'
         - $ref: '#/components/parameters/per_page'
+  '/api/v2/items/{item_id}/comments':
+    parameters:
+      - schema:
+          type: string
+        name: item_id
+        in: path
+        required: true
+        description: Article ID
+    get:
+      summary: Get item comments
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GetItemCommentsResponse'
+              examples: {}
+      operationId: get-item-comments
+      description: 投稿に付けられたコメント一覧を投稿日時の降順で取得します。
+      parameters: []
+      tags:
+        - team
+        - user
+    post:
+      summary: Create comment
+      operationId: create-comment
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreateCommentResponse'
+      description: 記事に対してコメントを投稿します。
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateCommentRequest'
+      tags:
+        - team
+        - user
+  '/api/v2/items/{item_id}/imported_comments':
+    parameters:
+      - schema:
+          type: string
+        name: item_id
+        in: path
+        required: true
+        description: Article ID
+    post:
+      summary: Create imported comment
+      operationId: create-imported-comment
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreateImportedCommentResponse'
+      description: ユーザー名を指定して記事に対するコメントを作成します(Qiita Teamでのみ有効。管理者権限が必要)。
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateImportedCommentRequest'
+      tags:
+        - team
   '/api/v2/items/{item_id}':
     parameters:
       - schema:
@@ -309,11 +596,12 @@ paths:
           description: Not Found
       operationId: delete-item
       description: 記事を削除します。
-      tags:
-        - item
       parameters: []
+      tags:
+        - team
+        - user
     get:
-      summary: ''
+      summary: Get item
       operationId: get-item
       responses:
         '200':
@@ -324,7 +612,8 @@ paths:
                 $ref: '#/components/schemas/GetItemResponse'
       description: 記事を取得します。
       tags:
-        - item
+        - team
+        - user
     patch:
       summary: ''
       operationId: update-item
@@ -342,7 +631,8 @@ paths:
             schema:
               $ref: '#/components/schemas/UpdateItemRequest'
       tags:
-        - item
+        - team
+        - user
   /api/v2/users:
     get:
       summary: Get users
@@ -484,12 +774,13 @@ paths:
       description: アクセストークンに紐付いたユーザーを返します。
       tags:
         - user
+        - team
   /api/v2/authenticated_user/items:
     get:
       summary: Get authenticated user items
       tags:
-        - item
         - user
+        - team
       responses:
         '200':
           description: OK
@@ -502,6 +793,60 @@ paths:
         - $ref: '#/components/parameters/page'
         - $ref: '#/components/parameters/per_page'
       description: 認証中のユーザーの記事の一覧を作成日時の降順で返します。
+  '/api/v2/comments/{comment_id}':
+    parameters:
+      - schema:
+          type: string
+          example: 3391f50c35f953abfc4f
+        name: comment_id
+        in: path
+        required: true
+        description: コメントの一意なID
+    get:
+      summary: Get comment
+      tags:
+        - user
+        - team
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GetCommentResponse'
+      operationId: get-comment
+      description: コメントを取得します。
+      requestBody:
+        content: {}
+    patch:
+      summary: Update comment
+      operationId: update-comment
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UpdateCommentResponse'
+      description: コメントを更新します。
+      tags:
+        - team
+        - user
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateCommentRequest'
+    delete:
+      summary: Delete comment
+      operationId: delete-comment
+      responses:
+        '204':
+          description: No Content
+      description: コメントを削除します。
+      tags:
+        - team
+        - user
 components:
   securitySchemes:
     Bearer:
@@ -533,59 +878,74 @@ components:
         description:
           type: string
           description: 自己紹介文
+          example: 'Hello, world.'
           nullable: true
         facebook_id:
           type: string
           description: Facebook ID
+          example: qiita
           nullable: true
         followees_count:
           type: integer
           description: このユーザーがフォローしているユーザーの数
+          example: 100
         followers_count:
           type: integer
           description: このユーザーをフォローしているユーザーの数
+          example: 200
         github_login_name:
           type: string
           description: GitHub ID
+          example: qiitan
           nullable: true
         id:
           type: string
           description: ユーザーID
+          example: qiita
         items_count:
           type: integer
           description: このユーザーが qiita.com 上で公開している記事の数 (Qiita Teamでの記事数は含まれません)
+          example: 300
         linkedin_id:
           type: string
           description: LinkedIn ID
+          example: qiita
           nullable: true
         location:
           type: string
           description: 居住地
+          example: 'Tokyo, Japan'
           nullable: true
         name:
           type: string
           description: 設定している名前
+          example: Qiita キータ
           nullable: true
         organization:
           type: string
           description: 所属している組織
+          example: Qiita Inc.
           nullable: true
         permanent_id:
           type: integer
           description: ユーザーごとに割り当てられる整数のID
+          example: 1
         profile_image_url:
           type: string
           description: 設定しているプロフィール画像のURL
+          example: 'https://s3-ap-northeast-1.amazonaws.com/qiita-image-store/0/88/ccf90b557a406157dbb9d2d7e543dae384dbb561/large.png?1575443439'
         team_only:
           type: boolean
           description: Qiita Team専用モードに設定されているかどうか
         twitter_screen_name:
           type: string
           description: Twitterのスクリーンネーム
+          example: qiita
           nullable: true
         website_url:
           type: string
           description: 設定しているWebサイトのURL
+          example: 'https://qiita.com'
           nullable: true
       required:
         - description
@@ -680,6 +1040,31 @@ components:
         - private
         - updated_at
         - url_name
+    GroupMember:
+      type: object
+      x-examples:
+        Example 1:
+          id: qiita
+          name: Qiita キータ
+          email: example@example.com
+      properties:
+        id:
+          type: string
+          description: ユーザーID
+          example: qiita
+        name:
+          type: string
+          description: チームに登録しているユーザー名
+          example: Qiita キータ
+        email:
+          type: string
+          description: メンバーのemailアドレス(チームの管理者かオーナーでなければ空文字が返されます)
+          example: example@example.com
+      required:
+        - id
+        - name
+        - email
+      description: Qiita Teamのグループのメンバーを表します。
     ItemTag:
       type: object
       x-examples:
@@ -843,6 +1228,63 @@ components:
         - page_views_count
         - slide
         - organization_url_name
+    Comment:
+      type: object
+      x-examples:
+        Example 1:
+          body: '# Example'
+          created_at: '2000-01-01T00:00:00+00:00'
+          id: 3391f50c35f953abfc4f
+          rendered_body: <h1>Example</h1>
+          updated_at: '2000-01-01T00:00:00+00:00'
+          user:
+            description: 'Hello, world.'
+            facebook_id: qiita
+            followees_count: 100
+            followers_count: 200
+            github_login_name: qiitan
+            id: qiita
+            items_count: 300
+            linkedin_id: qiita
+            location: 'Tokyo, Japan'
+            name: Qiita キータ
+            organization: Qiita Inc.
+            permanent_id: 1
+            profile_image_url: 'https://s3-ap-northeast-1.amazonaws.com/qiita-image-store/0/88/ccf90b557a406157dbb9d2d7e543dae384dbb561/large.png?1575443439'
+            team_only: false
+            twitter_screen_name: qiita
+            website_url: 'https://qiita.com'
+      properties:
+        body:
+          type: string
+          description: コメントの内容を表すMarkdown形式の文字列
+          example: '# Example'
+        created_at:
+          type: string
+          description: データが作成された日時
+          example: '2000-01-01T00:00:00+00:00'
+        id:
+          type: string
+          description: コメントの一意なID
+          example: 3391f50c35f953abfc4f
+        rendered_body:
+          type: string
+          description: コメントの内容を表すHTML形式の文字列
+          example: <h1>Example</h1>
+        updated_at:
+          type: string
+          description: データが最後に更新された日時
+          example: '2000-01-01T00:00:00+00:00'
+        user:
+          $ref: '#/components/schemas/User'
+      required:
+        - body
+        - created_at
+        - id
+        - rendered_body
+        - updated_at
+        - user
+      description: 記事やプロジェクトに付けられたコメントを表します。プロジェクトへのコメントはQiita Teamでのみ有効です。
     LikeHistory:
       type: object
       x-examples:
@@ -868,6 +1310,7 @@ components:
       properties:
         created_at:
           type: string
+          description: データが作成された日時
         user:
           $ref: '#/components/schemas/User'
       required:
@@ -947,6 +1390,107 @@ components:
         $ref: '#/components/schemas/Group'
     GetGroupResponse:
       $ref: '#/components/schemas/Group'
+    CreateGroupRequest:
+      type: object
+      x-examples:
+        Example 1:
+          url_name: dev
+          name: Dev
+          description: This group is for developers.
+          private: false
+      properties:
+        url_name:
+          type: string
+          description: グループのチーム上での一意な名前を表します。
+          example: dev
+        name:
+          type: string
+          description: グループに付けられた表示用の名前を表します。
+          example: Dev
+        description:
+          type: string
+          description: Qiita Teamのグループを表します。
+          example: This group is for developers.
+        private:
+          type: boolean
+          description: 非公開グループかどうかを表します。
+      required:
+        - url_name
+        - name
+        - private
+    CreateGroupResponse:
+      $ref: '#/components/schemas/Group'
+    UpdateGroupRequest:
+      type: object
+      x-examples:
+        Example 1:
+          url_name: dev
+          name: Dev
+          description: This group is for developers.
+          private: false
+      properties:
+        name:
+          type: string
+          description: グループに付けられた表示用の名前を表します。
+          example: Dev
+        description:
+          type: string
+          description: Qiita Teamのグループを表します。
+          example: This group is for developers.
+        private:
+          type: boolean
+          description: 非公開グループかどうかを表します。
+      required:
+        - name
+    UpdateGroupResponse:
+      $ref: '#/components/schemas/Group'
+    GetGroupMembersResponse:
+      x-examples:
+        Example 1:
+          - id: qiita
+            name: Qiita キータ
+            email: example@example.com
+      type: array
+      items:
+        $ref: '#/components/schemas/GroupMember'
+    GetGroupMemberResponse:
+      $ref: '#/components/schemas/GroupMember'
+    AddGroupMemberRequest:
+      x-stoplight:
+        id: 51nsoouiqqsp7
+      type: object
+      properties:
+        identities:
+          type: array
+          x-stoplight:
+            id: 4qduwp1w8eyqv
+          description: メンバーのユーザーIDかチームに登録しているemailアドレスの一覧
+          items:
+            x-stoplight:
+              id: mi3e76vyfkiat
+            type: string
+            example: Qiita
+      required:
+        - identities
+    AddGroupMemberResponse:
+      $ref: '#/components/schemas/GroupMember'
+    DeleteGroupMemberRequest:
+      type: object
+      x-stoplight:
+        id: rrucfr3wrvbym
+      properties:
+        identities:
+          type: array
+          x-stoplight:
+            id: 4qduwp1w8eyqv
+          description: メンバーのユーザーIDかチームに登録しているemailアドレスの一覧
+          items:
+            x-stoplight:
+              id: mi3e76vyfkiat
+            type: string
+            example: Qiita
+      required:
+        - identities
     GetItemsResponse:
       title: GetItemResponse
       x-stoplight:
@@ -954,6 +1498,8 @@ components:
       type: array
       items:
         $ref: '#/components/schemas/Item'
+    GetItemResponse:
+      $ref: '#/components/schemas/Item'
     CreateItemRequest:
       type: object
       x-examples:
@@ -1010,8 +1556,6 @@ components:
         - tags
         - title
     CreateItemResponse:
-      $ref: '#/components/schemas/Item'
-    GetItemResponse:
       $ref: '#/components/schemas/Item'
     UpdateItemRequest:
       type: object
@@ -1101,6 +1645,30 @@ components:
             website_url: 'https://qiita.com'
       items:
         $ref: '#/components/schemas/User'
+    GetItemCommentsResponse:
+      type: array
+      x-stoplight:
+        id: 6ibgpgeke62ac
+      x-examples:
+        Example 1:
+          - description: 'Hello, world.'
+            facebook_id: qiita
+            followees_count: 100
+            followers_count: 200
+            github_login_name: qiitan
+            id: qiita
+            items_count: 300
+            linkedin_id: qiita
+            location: 'Tokyo, Japan'
+            name: Qiita キータ
+            organization: Qiita Inc.
+            permanent_id: 1
+            profile_image_url: 'https://s3-ap-northeast-1.amazonaws.com/qiita-image-store/0/88/ccf90b557a406157dbb9d2d7e543dae384dbb561/large.png?1575443439'
+            team_only: false
+            twitter_screen_name: qiita
+            website_url: 'https://qiita.com'
+      items:
+        $ref: '#/components/schemas/Comment'
     GetUsersResponse:
       type: array
       x-stoplight:
@@ -1328,6 +1896,68 @@ components:
               name: Qiita キータ
             organization_url_name: qiita-inc
             slide: false
+    GetCommentResponse:
+      $ref: '#/components/schemas/Comment'
+    CreateCommentRequest:
+      type: object
+      x-stoplight:
+        id: eyn137dukj1dw
+      x-examples:
+        Example 1:
+          body: '# Example'
+      properties:
+        body:
+          type: string
+          description: コメントの内容を表すMarkdown形式の文字列
+          example: '# Example'
+      required:
+        - body
+    CreateCommentResponse:
+      $ref: '#/components/schemas/Comment'
+    UpdateCommentRequest:
+      type: object
+      x-examples:
+        Example 1:
+          body: '# Example'
+      properties:
+        body:
+          type: string
+          description: コメントの内容を表すMarkdown形式の文字列
+          example: '# Example'
+      required:
+        - body
+    UpdateCommentResponse:
+      $ref: '#/components/schemas/Comment'
+    CreateImportedCommentRequest:
+      type: object
+      x-examples:
+        Example 1:
+          body: '# Example'
+          user_id: qiita
+          created_at: '2000-01-01T00:00:00+00:00'
+          updated_at: '2000-01-01T00:00:00+00:00'
+      properties:
+        body:
+          type: string
+          description: コメントの内容を表すMarkdown形式の文字列
+          example: '# Example'
+        user_id:
+          type: string
+          description: ユーザーID
+          example: qiita
+        created_at:
+          type: string
+          description: データが作成された日時
+          example: '2000-01-01T00:00:00+00:00'
+        updated_at:
+          type: string
+          description: データが最後に更新された日時
+          example: '2000-01-01T00:00:00+00:00'
+      required:
+        - body
+        - user_id
+    CreateImportedCommentResponse:
+      $ref: '#/components/schemas/Comment'
   responses: {}
   parameters:
     page:
